@@ -42,57 +42,46 @@ class InstagramDataProcessor:
         Returns:
             list: List of JSON file paths
         """
-        inbox_path = os.path.join(self.data_path, "inbox")
+        print(f"Looking for conversation files in {self.data_path}")
+        logger.info(f"Looking for conversation files in {self.data_path}")
 
-        if not os.path.exists(inbox_path):
-            logger.error(f"Inbox path does not exist: {inbox_path}")
+        # Check if the data path exists
+        if not os.path.exists(self.data_path):
+            logger.error(f"Data path does not exist: {self.data_path}")
+            print(f"Data path does not exist: {self.data_path}")
             return []
 
         json_files = []
 
-        # Look specifically for the nailabelaidi folder first
-        naila_folder = os.path.join(inbox_path, "nailabelaidi_435947657788262")
-        if os.path.exists(naila_folder) and os.path.isdir(naila_folder):
-            for file in os.listdir(naila_folder):
+        # First, try to find all JSON files in the data path
+        for root, _, files in os.walk(self.data_path):
+            for file in files:
                 if file.endswith(".json"):
-                    json_files.append(os.path.join(naila_folder, file))
-                    logger.info(f"Found conversation file: {os.path.join(naila_folder, file)}")
+                    json_path = os.path.join(root, file)
+                    print(f"Found JSON file: {json_path}")
 
-            # If we found files in the specific folder, return them
-            if json_files:
-                self.conversation_files = json_files
-                logger.info(f"Found {len(json_files)} conversation files for {self.target_user}")
-                return json_files
-
-        # If the specific folder wasn't found or had no JSON files, try the general approach
-        for folder_name in os.listdir(inbox_path):
-            folder_path = os.path.join(inbox_path, folder_name)
-
-            # Check if it's a directory
-            if os.path.isdir(folder_path):
-                # Look for JSON files in this directory
-                for file in os.listdir(folder_path):
-                    if file.endswith(".json"):
-                        json_path = os.path.join(folder_path, file)
-
-                        # Check if this JSON file contains the target user
+                    # Try to read the file with different encodings
+                    for encoding in ['utf-8', 'latin1', 'cp1252']:
                         try:
-                            with open(json_path, 'r', encoding='utf-8') as f:
+                            with open(json_path, 'r', encoding=encoding) as f:
                                 data = json.load(f)
-                                if "participants" in data:
-                                    participant_names = [p.get("name", "") for p in data["participants"]]
 
-                                    # If the target user is in participants, add this file
-                                    if any(self.target_user.lower() in name.lower() for name in participant_names) or \
-                                       any(name.lower() in self.target_user.lower() for name in participant_names):
-                                        json_files.append(json_path)
-                                        logger.info(f"Found conversation file: {json_path}")
-                                        break  # Found a match, no need to check other files in this folder
-                        except Exception as e:
-                            logger.error(f"Error checking JSON file {json_path}: {str(e)}")
+                                # Check if this is a conversation file
+                                if isinstance(data, dict) and "messages" in data:
+                                    print(f"File contains messages, adding to list: {json_path}")
+                                    json_files.append(json_path)
+                                    break  # Found a valid encoding, no need to try others
+                        except Exception:
+                            continue  # Try next encoding
+
+        if not json_files:
+            print("No valid JSON files found containing messages")
+            logger.warning("No valid JSON files found containing messages")
+        else:
+            print(f"Found {len(json_files)} JSON files containing messages")
+            logger.info(f"Found {len(json_files)} JSON files containing messages")
 
         self.conversation_files = json_files
-        logger.info(f"Found {len(json_files)} conversation files for {self.target_user}")
         return json_files
 
     def process_json_files(self):
@@ -107,44 +96,83 @@ class InstagramDataProcessor:
 
         if not self.conversation_files:
             logger.error(f"No conversation files found for {self.target_user}")
+            print(f"No conversation files found for {self.target_user}")
             return []
 
         all_messages = []
+        print(f"Found {len(self.conversation_files)} conversation files to process")
 
         for file_path in self.conversation_files:
+            print(f"\nProcessing file: {file_path}")
             try:
-                # First try with utf-8 encoding
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as file:
-                        data = json.load(file)
-                except UnicodeDecodeError:
-                    # If utf-8 fails, try with latin1 encoding and convert to utf-8
-                    with open(file_path, 'r', encoding='latin1') as file:
-                        file_content = file.read()
-                        # Convert latin1 to utf-8 to fix encoding issues
-                        file_content = file_content.encode('latin1').decode('utf-8')
-                        data = json.loads(file_content)
+                # Try different encodings
+                encodings_to_try = ['utf-8', 'latin1', 'cp1252', 'utf-16']
+                data = None
+
+                for encoding in encodings_to_try:
+                    try:
+                        print(f"Trying to read with {encoding} encoding")
+                        with open(file_path, 'r', encoding=encoding) as file:
+                            file_content = file.read()
+                            data = json.loads(file_content)
+                            print(f"Successfully read file with {encoding} encoding")
+                            break
+                    except UnicodeDecodeError:
+                        print(f"Failed to decode with {encoding} encoding")
+                        continue
+                    except json.JSONDecodeError:
+                        print(f"Failed to parse JSON with {encoding} encoding")
+                        continue
+
+                if data is None:
+                    # If all encodings failed, try the special latin1->utf8 conversion
+                    try:
+                        print("Trying special latin1->utf8 conversion")
+                        with open(file_path, 'r', encoding='latin1') as file:
+                            file_content = file.read()
+                            # Convert latin1 to utf-8 to fix encoding issues
+                            file_content = file_content.encode('latin1').decode('utf-8')
+                            data = json.loads(file_content)
+                            print("Successfully read file with special conversion")
+                    except Exception as e:
+                        print(f"Special conversion failed: {e}")
+
+                if data is None:
+                    print(f"Could not read file {file_path} with any encoding")
+                    continue
+
+                # Print file structure for debugging
+                if isinstance(data, dict):
+                    print(f"File structure keys: {data.keys()}")
+                else:
+                    print(f"Data is not a dictionary, type: {type(data)}")
 
                 # Extract participants
-                if "participants" in data:
+                if isinstance(data, dict) and "participants" in data:
+                    print(f"Found participants: {[p.get('name', '') for p in data['participants']]}")
                     for participant in data["participants"]:
                         self.participants.add(participant.get("name", ""))
 
                 # Process messages
-                if "messages" in data:
+                if isinstance(data, dict) and "messages" in data:
+                    print(f"Found {len(data['messages'])} messages in the file")
                     for msg in data["messages"]:
                         processed_msg = self._process_message(msg)
                         if processed_msg:
                             all_messages.append(processed_msg)
+                else:
+                    print("No messages found in the expected format")
 
             except Exception as e:
                 logger.error(f"Error processing file {file_path}: {str(e)}")
+                print(f"Error processing file {file_path}: {str(e)}")
 
         # Sort messages by timestamp (oldest first)
         all_messages.sort(key=lambda x: x["timestamp"])
 
         self.messages = all_messages
         logger.info(f"Processed {len(all_messages)} messages")
+        print(f"\nTotal processed messages: {len(all_messages)}")
 
         return all_messages
 
@@ -158,10 +186,26 @@ class InstagramDataProcessor:
         Returns:
             dict: Processed message or None if should be skipped
         """
-        sender = message.get("sender_name", "")
+        # Print message structure for debugging
+        print(f"Processing message: {message.keys()}")
 
+        # Extract sender name with fallback options
+        sender = message.get("sender_name", "")
+        if not sender:
+            sender = message.get("sender", "")
+
+        # Fix any encoding issues in sender name
+        sender = utils.fix_broken_text(sender)
+
+        # Extract timestamp with fallback options
         timestamp_ms = message.get("timestamp_ms", 0)
+        if not timestamp_ms:
+            timestamp_ms = message.get("timestamp", 0)
+
+        # Extract content with fallback options
         content = message.get("content", "")
+        if not content and "text" in message:
+            content = message.get("text", "")
 
         # Process timestamp
         dt = utils.convert_timestamp(timestamp_ms)
@@ -172,33 +216,90 @@ class InstagramDataProcessor:
             content = utils.fix_broken_text(content)
             content = utils.unescape_text(content)
 
-        # Extract reactions
+        # Extract reactions with improved error handling
         reactions = []
-        if "reactions" in message:
+        if "reactions" in message and isinstance(message["reactions"], list):
             for reaction in message["reactions"]:
-                reactions.append({
-                    "reaction": utils.unescape_text(reaction.get("reaction", "")),
-                    "actor": reaction.get("actor", "")
-                })
+                if isinstance(reaction, dict):
+                    reaction_text = utils.unescape_text(reaction.get("reaction", ""))
+                    actor = reaction.get("actor", "")
+                    if reaction_text:
+                        reactions.append({
+                            "reaction": reaction_text,
+                            "actor": actor
+                        })
 
-        # Check for photos, videos, audio
+        # Check for photos with improved error handling
         photos = []
-        if "photos" in message:
+        # Check standard Instagram format
+        if "photos" in message and isinstance(message["photos"], list):
             for photo in message["photos"]:
-                if "uri" in photo:
+                if isinstance(photo, dict) and "uri" in photo:
                     photos.append(photo["uri"])
 
+        # Check alternative formats
+        if "attachments" in message and isinstance(message["attachments"], list):
+            for attachment in message["attachments"]:
+                if isinstance(attachment, dict):
+                    # Check for photos in attachments
+                    if attachment.get("type") == "photo" or "photo" in str(attachment).lower():
+                        if "uri" in attachment:
+                            photos.append(attachment["uri"])
+                        elif "path" in attachment:
+                            photos.append(attachment["path"])
+                        elif "url" in attachment:
+                            photos.append(attachment["url"])
+                        elif "data" in attachment and isinstance(attachment["data"], dict):
+                            if "uri" in attachment["data"]:
+                                photos.append(attachment["data"]["uri"])
+
+        # Check for videos with improved error handling
         videos = []
-        if "videos" in message:
+        # Check standard Instagram format
+        if "videos" in message and isinstance(message["videos"], list):
             for video in message["videos"]:
-                if "uri" in video:
+                if isinstance(video, dict) and "uri" in video:
                     videos.append(video["uri"])
 
+        # Check alternative formats
+        if "attachments" in message and isinstance(message["attachments"], list):
+            for attachment in message["attachments"]:
+                if isinstance(attachment, dict):
+                    # Check for videos in attachments
+                    if attachment.get("type") == "video" or "video" in str(attachment).lower():
+                        if "uri" in attachment:
+                            videos.append(attachment["uri"])
+                        elif "path" in attachment:
+                            videos.append(attachment["path"])
+                        elif "url" in attachment:
+                            videos.append(attachment["url"])
+                        elif "data" in attachment and isinstance(attachment["data"], dict):
+                            if "uri" in attachment["data"]:
+                                videos.append(attachment["data"]["uri"])
+
+        # Check for audio with improved error handling
         audio = []
-        if "audio_files" in message:
+        # Check standard Instagram format
+        if "audio_files" in message and isinstance(message["audio_files"], list):
             for audio_file in message["audio_files"]:
-                if "uri" in audio_file:
+                if isinstance(audio_file, dict) and "uri" in audio_file:
                     audio.append(audio_file["uri"])
+
+        # Check alternative formats
+        if "attachments" in message and isinstance(message["attachments"], list):
+            for attachment in message["attachments"]:
+                if isinstance(attachment, dict):
+                    # Check for audio in attachments
+                    if attachment.get("type") == "audio" or "audio" in str(attachment).lower():
+                        if "uri" in attachment:
+                            audio.append(attachment["uri"])
+                        elif "path" in attachment:
+                            audio.append(attachment["path"])
+                        elif "url" in attachment:
+                            audio.append(attachment["url"])
+                        elif "data" in attachment and isinstance(attachment["data"], dict):
+                            if "uri" in attachment["data"]:
+                                audio.append(attachment["data"]["uri"])
 
         # Create processed message
         processed_message = {
@@ -219,6 +320,9 @@ class InstagramDataProcessor:
             "mentions_target_name": self.target_user.lower() in content.lower() if content else False,
             "has_custom_phrase": any(utils.contains_phrase(content, [phrase]) for phrase in config.CUSTOM_PHRASES)
         }
+
+        # Print processed message for debugging
+        print(f"Processed message: sender={sender}, date={processed_message['date']}, has_photos={len(photos)}, has_videos={len(videos)}, has_audio={len(audio)}")
 
         return processed_message
 
