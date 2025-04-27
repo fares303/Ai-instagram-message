@@ -1,7 +1,7 @@
 # 📱 Instagram Memory Book Generator
 
 <p align="center">
-  <img src="https://i.imgur.com/XYZ123.gif" alt="Instagram Memory Book Demo" width="600">
+  <img src="https://raw.githubusercontent.com/fares303/Ai-instagram-message/main/docs/images/demo.gif" alt="Instagram Memory Book Demo" width="600">
 </p>
 
 > Transform your Instagram data exports into beautiful, interactive memory books with proper text encoding and emoji support!
@@ -22,7 +22,7 @@
 ## 🚀 Demo
 
 <p align="center">
-  <img src="https://i.imgur.com/XYZ456.gif" alt="Export Formats Demo" width="700">
+  <img src="https://raw.githubusercontent.com/fares303/Ai-instagram-message/main/docs/images/formats.gif" alt="Export Formats Demo" width="700">
 </p>
 
 ## 📋 Requirements
@@ -75,12 +75,12 @@ python run_processor.py --interactive
 
 ### HTML Export
 <p align="center">
-  <img src="https://i.imgur.com/XYZ789.png" alt="HTML Export" width="600">
+  <img src="https://raw.githubusercontent.com/fares303/Ai-instagram-message/main/docs/images/html_export.png" alt="HTML Export" width="600">
 </p>
 
 ### PDF Export
 <p align="center">
-  <img src="https://i.imgur.com/ABC123.png" alt="PDF Export" width="600">
+  <img src="https://raw.githubusercontent.com/fares303/Ai-instagram-message/main/docs/images/pdf_export.png" alt="PDF Export" width="600">
 </p>
 
 ## 📂 Output Structure
