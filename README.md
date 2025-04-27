@@ -8,6 +8,7 @@
 
 ## ✨ Features
 
+- 🖥️ **Modern GUI Interface** - User-friendly application with animations and dark mode
 - 🔄 **Automatic Text Repair** - Fixes broken encoding in messages (especially for non-Latin scripts)
 - 🎨 **Multiple Export Formats**:
   - 🌈 **HTML**: Interactive, animated conversation view
@@ -17,7 +18,9 @@
 - 📊 **Conversation Statistics** - Message counts, emoji usage, activity patterns
 - 📸 **Media Extraction** - Organizes photos, videos, and audio files
 - 😀 **Emoji Analysis** - Counts and displays emojis used in messages
+- 🔍 **Custom Word Counting** - Track specific words or emojis important to your conversations
 - 🌐 **Multilingual Support** - Special handling for right-to-left languages
+- 🔄 **Automatic File Detection** - Intelligently finds and processes only valid chat files
 
 ## 🚀 Demo
 
@@ -62,6 +65,25 @@ CUSTOM_PHRASES = ["happy birthday", "congratulations"]
 ```
 
 ## 🚀 Usage
+
+### GUI Application (Recommended)
+
+```bash
+# Run the GUI application
+python run_gui.py
+
+# On Windows, you can also double-click run_gui.bat
+```
+
+The GUI application provides a user-friendly interface with:
+- Folder selection dialog
+- Automatic JSON file detection
+- Custom word/emoji counting
+- Animated progress indicators
+- Results summary view
+- One-click access to output files
+
+### Command Line Interface
 
 ```bash
 # Basic usage

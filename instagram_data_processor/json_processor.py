@@ -217,7 +217,7 @@ class InstagramDataProcessor:
             "is_good_morning": utils.contains_phrase(content, config.GOOD_MORNING_PHRASES),
             "mentions_my_name": self.my_name.lower() in content.lower() if content else False,
             "mentions_target_name": self.target_user.lower() in content.lower() if content else False,
-            "has_algerian_slang": any(utils.contains_phrase(content, [slang]) for slang in config.ALGERIAN_SLANG)
+            "has_custom_phrase": any(utils.contains_phrase(content, [phrase]) for phrase in config.CUSTOM_PHRASES)
         }
 
         return processed_message
@@ -272,8 +272,8 @@ class InstagramDataProcessor:
         # Count active conversation days
         conversation_days = set(msg["date"] for msg in self.messages)
 
-        # Count Algerian slang
-        algerian_slang_count = sum(1 for msg in self.messages if msg["has_algerian_slang"])
+        # Count custom phrases
+        custom_phrases_count = sum(1 for msg in self.messages if msg["has_custom_phrase"])
 
         # Most active day
         days_count = {}
@@ -299,7 +299,7 @@ class InstagramDataProcessor:
                 (datetime.strptime(self.messages[-1]["date"], config.DATE_FORMAT) -
                  datetime.strptime(self.messages[0]["date"], config.DATE_FORMAT)).days + 1
             ) if self.messages else 0,
-            "algerian_slang_count": algerian_slang_count,
+            "custom_phrases_count": custom_phrases_count,
             "most_active_day": most_active_day[0],
             "most_active_day_count": most_active_day[1],
         }
