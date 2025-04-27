@@ -116,6 +116,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Founas Mohamed Fares**
 
 - GitHub: [@fares303](https://github.com/fares303)
+- Developer of Instagram Memory Book Generator
 
 ## 🙏 Acknowledgements
 
