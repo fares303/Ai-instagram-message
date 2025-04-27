@@ -17,23 +17,26 @@ class InstagramDataProcessor:
     Process Instagram JSON data files.
     """
 
-    def __init__(self, data_path, target_user, my_name):
+    def __init__(self, data_path, target_user, my_name, is_group_chat=False):
         """
         Initialize the processor.
 
         Args:
             data_path (str): Path to Instagram data folder
-            target_user (str): Name of the target user to analyze
+            target_user (str): Name of the target user or group to analyze
             my_name (str): Your name
+            is_group_chat (bool): Whether this is a group chat
         """
         self.data_path = data_path
         self.target_user = target_user
         self.my_name = my_name
+        self.is_group_chat = is_group_chat
         self.messages = []
         self.participants = set()
         self.conversation_files = []
 
-        logger.info(f"Initialized processor for user: {target_user}")
+        logger.info(f"Initialized processor for {'group' if is_group_chat else 'user'}: {target_user}")
+        print(f"Initialized processor for {'group' if is_group_chat else 'user'}: {target_user}")
 
     def find_conversation_files(self):
         """
@@ -68,9 +71,29 @@ class InstagramDataProcessor:
 
                                 # Check if this is a conversation file
                                 if isinstance(data, dict) and "messages" in data:
-                                    print(f"File contains messages, adding to list: {json_path}")
-                                    json_files.append(json_path)
-                                    break  # Found a valid encoding, no need to try others
+                                    # For group chats, we accept all conversation files
+                                    if self.is_group_chat:
+                                        print(f"Group chat mode: File contains messages, adding to list: {json_path}")
+                                        json_files.append(json_path)
+                                        break  # Found a valid encoding, no need to try others
+                                    # For individual chats, check if the target user is in the participants
+                                    elif "participants" in data:
+                                        participant_names = [p.get("name", "") for p in data["participants"]]
+                                        print(f"File participants: {participant_names}")
+
+                                        # Check if target user is in participants
+                                        if any(self.target_user.lower() in name.lower() for name in participant_names) or \
+                                           any(name.lower() in self.target_user.lower() for name in participant_names):
+                                            print(f"Found target user {self.target_user} in participants, adding file: {json_path}")
+                                            json_files.append(json_path)
+                                            break  # Found a valid encoding, no need to try others
+                                        else:
+                                            print(f"Target user {self.target_user} not found in participants, skipping file")
+                                    else:
+                                        # If no participants field, add the file anyway
+                                        print(f"No participants field found, adding file: {json_path}")
+                                        json_files.append(json_path)
+                                        break  # Found a valid encoding, no need to try others
                         except Exception:
                             continue  # Try next encoding
 
@@ -517,9 +540,24 @@ class InstagramDataProcessor:
             "emojis": utils.extract_emojis(content),
             "is_good_morning": utils.contains_phrase(content, config.GOOD_MORNING_PHRASES),
             "mentions_my_name": self.my_name.lower() in content.lower() if content else False,
-            "mentions_target_name": self.target_user.lower() in content.lower() if content else False,
-            "has_custom_phrase": any(utils.contains_phrase(content, [phrase]) for phrase in config.CUSTOM_PHRASES)
+            "mentions_target_name": False,  # Will be updated below
+            "has_custom_phrase": any(utils.contains_phrase(content, [phrase]) for phrase in config.CUSTOM_PHRASES),
+            "is_from_me": sender.lower() == self.my_name.lower(),
+            "is_from_target": False  # Will be updated below
         }
+
+        # For group chats, we need to handle mentions differently
+        if self.is_group_chat:
+            # In group chats, check if the message mentions any participant
+            processed_message["mentions_target_name"] = False
+            processed_message["is_from_target"] = False
+
+            # Add all participants to the message for group chat analysis
+            processed_message["all_participants"] = list(self.participants)
+        else:
+            # For individual chats, check if the message mentions the target user
+            processed_message["mentions_target_name"] = self.target_user.lower() in content.lower() if content else False
+            processed_message["is_from_target"] = sender.lower() == self.target_user.lower()
 
         # Print processed message for debugging
         print(f"Processed message: sender={sender}, date={processed_message['date']}, has_photos={len(photos)}, has_videos={len(videos)}, has_audio={len(audio)}")
@@ -606,6 +644,39 @@ class InstagramDataProcessor:
             "custom_phrases_count": custom_phrases_count,
             "most_active_day": most_active_day[0],
             "most_active_day_count": most_active_day[1],
+            "is_group_chat": self.is_group_chat,
+            "participants_count": len(self.participants),
+            "participants": list(self.participants)
         }
+
+        # Add group chat specific statistics
+        if self.is_group_chat:
+            # Calculate who talks to whom
+            interactions = {}
+            for participant in self.participants:
+                interactions[participant] = {}
+                for other in self.participants:
+                    if participant != other:
+                        interactions[participant][other] = 0
+
+            # Count messages where one participant mentions another
+            for msg in self.messages:
+                sender = msg["sender"]
+                content = msg["content"].lower() if msg["content"] else ""
+
+                for participant in self.participants:
+                    if sender != participant and participant.lower() in content:
+                        if sender in interactions and participant in interactions[sender]:
+                            interactions[sender][participant] += 1
+
+            stats["participant_interactions"] = interactions
+
+            # Find most active participants
+            sorted_participants = sorted(
+                messages_by_sender.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )
+            stats["most_active_participants"] = sorted_participants
 
         return stats

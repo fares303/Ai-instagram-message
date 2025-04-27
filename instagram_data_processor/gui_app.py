@@ -15,7 +15,7 @@ import customtkinter as ctk
 # Import the necessary modules from our package
 from instagram_data_processor.json_processor import InstagramDataProcessor
 from instagram_data_processor.media_extractor import MediaExtractor
-from instagram_data_processor.exporters import TxtExporter, HTMLExporter
+from instagram_data_processor.exporters import TxtExporter, HTMLExporter, PDFExporter, ExcelExporter
 import instagram_data_processor.utils as utils
 
 # Set appearance mode and default color theme
@@ -41,6 +41,7 @@ class InstagramDataProcessorApp(ctk.CTk):
         self.my_name = tk.StringVar()
         self.custom_words = tk.StringVar()
         self.output_path = tk.StringVar(value=os.path.join(os.path.expanduser("~"), "Instagram_Memory_Book"))
+        self.is_group_chat = tk.BooleanVar(value=False)
 
         # Initialize state variables
         self.json_files = []
@@ -175,7 +176,7 @@ class InstagramDataProcessorApp(ctk.CTk):
         # Target user
         target_label = ctk.CTkLabel(
             input_frame,
-            text="Friend's Username:",
+            text="Friend/Group Name:",
             anchor="w",
             width=150
         )
@@ -184,7 +185,7 @@ class InstagramDataProcessorApp(ctk.CTk):
         target_entry = ctk.CTkEntry(
             input_frame,
             textvariable=self.target_user,
-            placeholder_text="Enter your friend's username",
+            placeholder_text="Enter friend's username or group name",
             width=200,
             height=35
         )
@@ -236,6 +237,24 @@ class InstagramDataProcessorApp(ctk.CTk):
             height=35
         )
         output_button.pack(side=tk.RIGHT)
+
+        # Group chat checkbox
+        group_chat_label = ctk.CTkLabel(
+            input_frame,
+            text="Group Chat:",
+            anchor="w",
+            width=150
+        )
+        group_chat_label.grid(row=3, column=0, sticky="w", padx=5, pady=5)
+
+        group_chat_checkbox = ctk.CTkCheckBox(
+            input_frame,
+            text="This is a group conversation",
+            variable=self.is_group_chat,
+            onvalue=True,
+            offvalue=False
+        )
+        group_chat_checkbox.grid(row=3, column=1, sticky="w", padx=5, pady=5)
 
         # Configure grid
         input_frame.columnconfigure(1, weight=1)
@@ -477,7 +496,8 @@ class InstagramDataProcessorApp(ctk.CTk):
             processor = InstagramDataProcessor(
                 self.folder_path.get(),
                 self.target_user.get(),
-                self.my_name.get()
+                self.my_name.get(),
+                is_group_chat=self.is_group_chat.get()
             )
 
             # Process JSON files
@@ -509,7 +529,33 @@ class InstagramDataProcessorApp(ctk.CTk):
 
             # Export to HTML
             html_exporter = HTMLExporter(output_dirs["html"])
-            html_file = html_exporter.export(messages, self.target_user.get(), self.my_name.get(), stats)
+            html_file = html_exporter.export(
+                messages,
+                self.target_user.get(),
+                self.my_name.get(),
+                stats,
+                is_group_chat=self.is_group_chat.get()
+            )
+
+            # Export to PDF
+            pdf_exporter = PDFExporter(output_dirs["pdf"])
+            pdf_file = pdf_exporter.export(
+                messages,
+                self.target_user.get(),
+                self.my_name.get(),
+                stats,
+                is_group_chat=self.is_group_chat.get()
+            )
+
+            # Export to Excel
+            excel_exporter = ExcelExporter(output_dirs["excel"])
+            excel_file = excel_exporter.export(
+                messages,
+                self.target_user.get(),
+                self.my_name.get(),
+                stats,
+                is_group_chat=self.is_group_chat.get()
+            )
 
             # Store results
             self.analysis_results = {
@@ -519,7 +565,9 @@ class InstagramDataProcessorApp(ctk.CTk):
                 'custom_word_counts': custom_word_counts,
                 'output_files': {
                     'txt': txt_file,
-                    'html': html_file
+                    'html': html_file,
+                    'pdf': pdf_file,
+                    'excel': excel_file
                 },
                 'output_path': self.output_path.get()
             }
@@ -579,8 +627,21 @@ class InstagramDataProcessorApp(ctk.CTk):
         # Basic stats
         self.results_text.insert("end", "📝 Basic Statistics:\n", "subheading")
         self.results_text.insert("end", f"• Total Messages: {results['messages']}\n")
-        self.results_text.insert("end", f"• Messages from {self.my_name.get()}: {stats['messages_by_sender'].get(self.my_name.get(), 0)}\n")
-        self.results_text.insert("end", f"• Messages from {self.target_user.get()}: {stats['messages_by_sender'].get(self.target_user.get(), 0)}\n")
+
+        # Check if it's a group chat
+        if stats.get('is_group_chat', False):
+            self.results_text.insert("end", f"• Group Chat: Yes (with {stats['participants_count']} participants)\n")
+            self.results_text.insert("end", f"• Messages from {self.my_name.get()}: {stats['messages_by_sender'].get(self.my_name.get(), 0)}\n")
+
+            # Show top 5 most active participants
+            if 'most_active_participants' in stats:
+                self.results_text.insert("end", "• Most Active Participants:\n")
+                for i, (participant, count) in enumerate(stats['most_active_participants'][:5]):
+                    self.results_text.insert("end", f"  {i+1}. {participant}: {count} messages\n")
+        else:
+            self.results_text.insert("end", f"• Messages from {self.my_name.get()}: {stats['messages_by_sender'].get(self.my_name.get(), 0)}\n")
+            self.results_text.insert("end", f"• Messages from {self.target_user.get()}: {stats['messages_by_sender'].get(self.target_user.get(), 0)}\n")
+
         self.results_text.insert("end", f"• Total Emojis: {stats['total_emojis']}\n")
         self.results_text.insert("end", f"• Conversation Duration: {stats['conversation_duration_days']} days\n")
         self.results_text.insert("end", f"• First Message Date: {stats['first_message_date']}\n")
@@ -606,6 +667,10 @@ class InstagramDataProcessorApp(ctk.CTk):
             self.results_text.insert("end", f"• TXT: {os.path.basename(results['output_files']['txt'])}\n")
         if results['output_files']['html']:
             self.results_text.insert("end", f"• HTML: {os.path.basename(results['output_files']['html'])}\n")
+        if results['output_files']['pdf']:
+            self.results_text.insert("end", f"• PDF: {os.path.basename(results['output_files']['pdf'])}\n")
+        if results['output_files']['excel']:
+            self.results_text.insert("end", f"• Excel: {os.path.basename(results['output_files']['excel'])}\n")
         self.results_text.insert("end", f"\nAll files saved to: {results['output_path']}\n")
 
         # Configure text tags

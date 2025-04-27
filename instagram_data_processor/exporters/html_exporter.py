@@ -29,15 +29,16 @@ class HTMLExporter:
         self.output_dir = output_dir
         logger.info(f"Initialized HTML exporter with output directory: {output_dir}")
 
-    def export(self, messages, target_user, my_name, stats=None):
+    def export(self, messages, target_user, my_name, stats=None, is_group_chat=False):
         """
         Export conversation to HTML file.
 
         Args:
             messages (list): List of processed messages
-            target_user (str): Name of the target user
+            target_user (str): Name of the target user or group
             my_name (str): Your name
             stats (dict, optional): Statistics dictionary
+            is_group_chat (bool): Whether this is a group chat
 
         Returns:
             str: Path to the exported HTML file
@@ -45,12 +46,15 @@ class HTMLExporter:
         try:
             # Create filename with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"conversation_with_{target_user}_{timestamp}.html"
+            if is_group_chat:
+                filename = f"group_chat_{target_user}_{timestamp}.html"
+            else:
+                filename = f"conversation_with_{target_user}_{timestamp}.html"
             filepath = os.path.join(self.output_dir, filename)
 
             with open(filepath, 'w', encoding='utf-8') as file:
                 # Write HTML header
-                file.write(self._generate_html_header(target_user, my_name))
+                file.write(self._generate_html_header(target_user, my_name, is_group_chat))
 
                 # Write statistics if available
                 if stats:
@@ -148,13 +152,14 @@ class HTMLExporter:
             logger.error(f"Error exporting to HTML file: {str(e)}")
             return None
 
-    def _generate_html_header(self, target_user, my_name):
+    def _generate_html_header(self, target_user, my_name, is_group_chat=False):
         """
         Generate HTML header with CSS styles.
 
         Args:
-            target_user (str): Name of the target user
+            target_user (str): Name of the target user or group
             my_name (str): Your name
+            is_group_chat (bool): Whether this is a group chat
 
         Returns:
             str: HTML header
@@ -165,9 +170,9 @@ class HTMLExporter:
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Instagram conversation with {html.escape(target_user)}">
+    <meta name="description" content="Instagram {'group chat' if is_group_chat else 'conversation'} with {html.escape(target_user)}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Conversation with {html.escape(target_user)}</title>
+    <title>{'Group Chat: ' if is_group_chat else 'Conversation with '}{html.escape(target_user)}</title>
     <!-- Google Fonts for better Arabic support -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap">
     <style>
@@ -460,7 +465,7 @@ class HTMLExporter:
 <body>
     <div class="container">
         <div class="header">
-            <h1>Conversation with {html.escape(target_user)}</h1>
+            <h1>{'Group Chat: ' if is_group_chat else 'Conversation with '}{html.escape(target_user)}</h1>
             <p>Instagram Memory Book</p>
         </div>
 '''
@@ -471,12 +476,14 @@ class HTMLExporter:
 
         Args:
             stats (dict): Statistics dictionary
-            target_user (str): Name of the target user
+            target_user (str): Name of the target user or group
             my_name (str): Your name
 
         Returns:
             str: HTML for statistics section
         """
+        # Check if this is a group chat
+        is_group_chat = stats.get('is_group_chat', False)
         html_content = '''
         <div class="stats-container">
             <h2>Conversation Statistics</h2>
@@ -491,9 +498,28 @@ class HTMLExporter:
                 </div>
 '''
 
-        # Messages by sender
-        for sender, count in stats['messages_by_sender'].items():
+        # Group chat specific stats
+        if is_group_chat:
             html_content += f'''
+                <div class="stat-card" data-animation="fade-in">
+                    <div class="stat-value">{stats.get('participants_count', 0)}</div>
+                    <div class="stat-label">Participants</div>
+                </div>
+'''
+
+            # Show top 5 most active participants
+            if 'most_active_participants' in stats:
+                for i, (participant, count) in enumerate(stats['most_active_participants'][:5]):
+                    html_content += f'''
+                <div class="stat-card" data-animation="fade-in">
+                    <div class="stat-value">{count}</div>
+                    <div class="stat-label">Messages from {html.escape(participant)}</div>
+                </div>
+'''
+        else:
+            # Messages by sender for individual chats
+            for sender, count in stats['messages_by_sender'].items():
+                html_content += f'''
                 <div class="stat-card" data-animation="fade-in">
                     <div class="stat-value">{count}</div>
                     <div class="stat-label">Messages from {html.escape(sender)}</div>

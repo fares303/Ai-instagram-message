@@ -241,15 +241,16 @@ class PDFExporter:
         self.output_dir = output_dir
         logger.info(f"Initialized PDF exporter with output directory: {output_dir}")
 
-    def export(self, messages, target_user, my_name, stats=None):
+    def export(self, messages, target_user, my_name, stats=None, is_group_chat=False):
         """
         Export messages to a PDF file.
 
         Args:
             messages (list): List of processed messages
-            target_user (str): Name of the target user
+            target_user (str): Name of the target user or group
             my_name (str): Your name
             stats (dict, optional): Statistics to include
+            is_group_chat (bool): Whether this is a group chat
 
         Returns:
             str: Path to the exported file
@@ -260,12 +261,18 @@ class PDFExporter:
 
         # Create filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"conversation_with_{target_user}_{timestamp}.pdf"
+        if is_group_chat:
+            filename = f"group_chat_{target_user}_{timestamp}.pdf"
+        else:
+            filename = f"conversation_with_{target_user}_{timestamp}.pdf"
         filepath = os.path.join(self.output_dir, filename)
 
         try:
             # Initialize PDF
-            pdf = ConversationPDF(f"Conversation with {target_user}", my_name)
+            if is_group_chat:
+                pdf = ConversationPDF(f"Group Chat: {target_user}", my_name)
+            else:
+                pdf = ConversationPDF(f"Conversation with {target_user}", my_name)
 
             # Add cover page
             pdf.add_page()
@@ -277,7 +284,10 @@ class PDFExporter:
 
             # Subtitle
             pdf.set_font('Arial', 'B', 18)
-            pdf.cell(0, 15, f"Conversation with {target_user}", 0, 1, 'C')
+            if is_group_chat:
+                pdf.cell(0, 15, f"Group Chat: {target_user}", 0, 1, 'C')
+            else:
+                pdf.cell(0, 15, f"Conversation with {target_user}", 0, 1, 'C')
 
             # Add a decorative line
             pdf.set_draw_color(pdf.primary_r, pdf.primary_g, pdf.primary_b)

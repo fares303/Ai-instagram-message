@@ -28,15 +28,16 @@ class ExcelExporter:
         self.output_dir = output_dir
         logger.info(f"Initialized Excel exporter with output directory: {output_dir}")
 
-    def export(self, messages, target_user, my_name, stats=None):
+    def export(self, messages, target_user, my_name, stats=None, is_group_chat=False):
         """
         Export messages to an Excel file.
 
         Args:
             messages (list): List of processed messages
-            target_user (str): Name of the target user
+            target_user (str): Name of the target user or group
             my_name (str): Your name
             stats (dict, optional): Statistics to include
+            is_group_chat (bool): Whether this is a group chat
 
         Returns:
             str: Path to the exported file
@@ -47,7 +48,10 @@ class ExcelExporter:
 
         # Create filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"conversation_with_{target_user}_{timestamp}.xlsx"
+        if is_group_chat:
+            filename = f"group_chat_{target_user}_{timestamp}.xlsx"
+        else:
+            filename = f"conversation_with_{target_user}_{timestamp}.xlsx"
         filepath = os.path.join(self.output_dir, filename)
 
         try:
@@ -137,9 +141,12 @@ class ExcelExporter:
         Args:
             writer (ExcelWriter): Pandas Excel writer
             stats (dict): Statistics dictionary
-            target_user (str): Name of the target user
+            target_user (str): Name of the target user or group
             my_name (str): Your name
         """
+        # Check if this is a group chat
+        is_group_chat = stats.get('is_group_chat', False)
+
         # Prepare data for the statistics sheet
         stats_data = [
             ['Conversation Statistics', ''],
@@ -147,9 +154,27 @@ class ExcelExporter:
             ['Total Messages', stats['total_messages']],
         ]
 
-        # Add messages by sender
-        for sender, count in stats['messages_by_sender'].items():
-            stats_data.append([f'Messages from {sender}', count])
+        # Add group chat specific information
+        if is_group_chat:
+            stats_data.append(['Group Chat', 'Yes'])
+            stats_data.append(['Number of Participants', stats.get('participants_count', 0)])
+            stats_data.append(['Participants', ', '.join(stats.get('participants', []))])
+
+            # Add messages by sender for top participants
+            stats_data.append(['', ''])
+            stats_data.append(['Messages by Participant', ''])
+
+            if 'most_active_participants' in stats:
+                for participant, count in stats['most_active_participants']:
+                    stats_data.append([f'Messages from {participant}', count])
+            else:
+                # If most_active_participants is not available, use messages_by_sender
+                for sender, count in stats['messages_by_sender'].items():
+                    stats_data.append([f'Messages from {sender}', count])
+        else:
+            # Add messages by sender for individual chats
+            for sender, count in stats['messages_by_sender'].items():
+                stats_data.append([f'Messages from {sender}', count])
 
         # Add other statistics
         stats_data.extend([
