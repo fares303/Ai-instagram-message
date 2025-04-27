@@ -1,0 +1,12 @@
+This is a placeholder file. Replace with actual images and GIFs of your application.
+
+Suggested images to create:
+1. demo.gif - A short animation showing the application in action
+2. formats.gif - A demonstration of the different export formats
+3. html_export.png - A screenshot of the HTML export
+4. pdf_export.png - A screenshot of the PDF export
+
+You can create these images by:
+1. Taking screenshots of your application
+2. Recording your screen while using the application
+3. Converting the recordings to GIFs using tools like ScreenToGif, GIMP, or online converters

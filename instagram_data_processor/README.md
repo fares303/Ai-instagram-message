@@ -53,8 +53,8 @@ A professional Python tool to process and analyze Instagram conversation data, c
 1. Update the configuration in `config.py`:
    ```python
    # User configuration
-   TARGET_USER = "Laila"  # The specific user to analyze
-   MY_NAME = "Fares"  # Your name for statistics
+   TARGET_USER = "friend_username"  # The specific user to analyze
+   MY_NAME = "your_username"  # Your name for statistics
 
    # Path configuration
    DATA_ROOT_PATH = "path/to/instagram/data"  # Path to the Instagram data folder
@@ -68,7 +68,7 @@ A professional Python tool to process and analyze Instagram conversation data, c
 
 3. Alternatively, use command-line arguments:
    ```
-   python -m instagram_data_processor.main --data-path "/path/to/data" --target-user "Laila" --my-name "Fares"
+   python -m instagram_data_processor.main --data-path "/path/to/data" --target-user "friend_username" --my-name "your_username"
    ```
 
 ## Output
@@ -77,11 +77,11 @@ The program creates the following output structure:
 ```
 output/
 ├── text/
-│   └── conversation_with_Laila_YYYYMMDD_HHMMSS.txt
+│   └── conversation_with_friend_username_YYYYMMDD_HHMMSS.txt
 ├── pdf/
-│   └── conversation_with_Laila_YYYYMMDD_HHMMSS.pdf
+│   └── conversation_with_friend_username_YYYYMMDD_HHMMSS.pdf
 ├── excel/
-│   └── conversation_with_Laila_YYYYMMDD_HHMMSS.xlsx
+│   └── conversation_with_friend_username_YYYYMMDD_HHMMSS.xlsx
 └── media/
     ├── photos/
     ├── videos/

@@ -7,7 +7,7 @@ a "Memory Book" with conversation analysis, statistics, and media files.
 Usage:
     python main.py
 
-Author: Fares
+Author: Founas Mohamed Fares
 """
 
 import os
