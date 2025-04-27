@@ -229,77 +229,277 @@ class InstagramDataProcessor:
                             "actor": actor
                         })
 
+        # Print the entire message for debugging
+        print(f"Full message structure: {json.dumps(message, indent=2, default=str)}")
+
         # Check for photos with improved error handling
         photos = []
+
         # Check standard Instagram format
         if "photos" in message and isinstance(message["photos"], list):
+            print(f"Found photos array with {len(message['photos'])} items")
             for photo in message["photos"]:
-                if isinstance(photo, dict) and "uri" in photo:
-                    photos.append(photo["uri"])
+                if isinstance(photo, dict):
+                    print(f"Photo item: {photo}")
+                    if "uri" in photo:
+                        photos.append(photo["uri"])
+                        print(f"Added photo URI: {photo['uri']}")
+                    elif "path" in photo:
+                        photos.append(photo["path"])
+                        print(f"Added photo path: {photo['path']}")
+                    elif "filename" in photo:
+                        photos.append(photo["filename"])
+                        print(f"Added photo filename: {photo['filename']}")
 
-        # Check alternative formats
+        # Check for photo_data field
+        if "photo_data" in message and isinstance(message["photo_data"], list):
+            print(f"Found photo_data array with {len(message['photo_data'])} items")
+            for photo in message["photo_data"]:
+                if isinstance(photo, dict):
+                    print(f"Photo data item: {photo}")
+                    if "uri" in photo:
+                        photos.append(photo["uri"])
+                        print(f"Added photo URI from photo_data: {photo['uri']}")
+                    elif "path" in photo:
+                        photos.append(photo["path"])
+                        print(f"Added photo path from photo_data: {photo['path']}")
+
+        # Check for image field
+        if "image" in message and isinstance(message["image"], dict):
+            print(f"Found image field: {message['image']}")
+            if "uri" in message["image"]:
+                photos.append(message["image"]["uri"])
+                print(f"Added photo URI from image field: {message['image']['uri']}")
+
+        # Check alternative formats - attachments
         if "attachments" in message and isinstance(message["attachments"], list):
+            print(f"Found attachments array with {len(message['attachments'])} items")
             for attachment in message["attachments"]:
                 if isinstance(attachment, dict):
+                    print(f"Attachment item: {attachment}")
                     # Check for photos in attachments
-                    if attachment.get("type") == "photo" or "photo" in str(attachment).lower():
+                    if attachment.get("type") == "photo" or "photo" in str(attachment).lower() or "image" in str(attachment).lower():
+                        print(f"Found photo attachment: {attachment}")
                         if "uri" in attachment:
                             photos.append(attachment["uri"])
+                            print(f"Added photo URI from attachment: {attachment['uri']}")
                         elif "path" in attachment:
                             photos.append(attachment["path"])
+                            print(f"Added photo path from attachment: {attachment['path']}")
                         elif "url" in attachment:
                             photos.append(attachment["url"])
+                            print(f"Added photo URL from attachment: {attachment['url']}")
+                        elif "filename" in attachment:
+                            photos.append(attachment["filename"])
+                            print(f"Added photo filename from attachment: {attachment['filename']}")
                         elif "data" in attachment and isinstance(attachment["data"], dict):
+                            print(f"Attachment data: {attachment['data']}")
                             if "uri" in attachment["data"]:
                                 photos.append(attachment["data"]["uri"])
+                                print(f"Added photo URI from attachment data: {attachment['data']['uri']}")
+                            elif "url" in attachment["data"]:
+                                photos.append(attachment["data"]["url"])
+                                print(f"Added photo URL from attachment data: {attachment['data']['url']}")
+
+        # Check for files field
+        if "files" in message and isinstance(message["files"], list):
+            print(f"Found files array with {len(message['files'])} items")
+            for file_item in message["files"]:
+                if isinstance(file_item, dict):
+                    print(f"File item: {file_item}")
+                    file_type = file_item.get("file_type", "").lower()
+                    if "image" in file_type or "photo" in file_type or file_type.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                        if "uri" in file_item:
+                            photos.append(file_item["uri"])
+                            print(f"Added photo URI from files: {file_item['uri']}")
+                        elif "path" in file_item:
+                            photos.append(file_item["path"])
+                            print(f"Added photo path from files: {file_item['path']}")
+                        elif "url" in file_item:
+                            photos.append(file_item["url"])
+                            print(f"Added photo URL from files: {file_item['url']}")
+                        elif "filename" in file_item:
+                            photos.append(file_item["filename"])
+                            print(f"Added photo filename from files: {file_item['filename']}")
 
         # Check for videos with improved error handling
         videos = []
+
         # Check standard Instagram format
         if "videos" in message and isinstance(message["videos"], list):
+            print(f"Found videos array with {len(message['videos'])} items")
             for video in message["videos"]:
-                if isinstance(video, dict) and "uri" in video:
-                    videos.append(video["uri"])
+                if isinstance(video, dict):
+                    print(f"Video item: {video}")
+                    if "uri" in video:
+                        videos.append(video["uri"])
+                        print(f"Added video URI: {video['uri']}")
+                    elif "path" in video:
+                        videos.append(video["path"])
+                        print(f"Added video path: {video['path']}")
+                    elif "filename" in video:
+                        videos.append(video["filename"])
+                        print(f"Added video filename: {video['filename']}")
 
-        # Check alternative formats
+        # Check for video_data field
+        if "video_data" in message and isinstance(message["video_data"], list):
+            print(f"Found video_data array with {len(message['video_data'])} items")
+            for video in message["video_data"]:
+                if isinstance(video, dict):
+                    print(f"Video data item: {video}")
+                    if "uri" in video:
+                        videos.append(video["uri"])
+                        print(f"Added video URI from video_data: {video['uri']}")
+                    elif "path" in video:
+                        videos.append(video["path"])
+                        print(f"Added video path from video_data: {video['path']}")
+
+        # Check alternative formats - attachments
         if "attachments" in message and isinstance(message["attachments"], list):
             for attachment in message["attachments"]:
                 if isinstance(attachment, dict):
                     # Check for videos in attachments
                     if attachment.get("type") == "video" or "video" in str(attachment).lower():
+                        print(f"Found video attachment: {attachment}")
                         if "uri" in attachment:
                             videos.append(attachment["uri"])
+                            print(f"Added video URI from attachment: {attachment['uri']}")
                         elif "path" in attachment:
                             videos.append(attachment["path"])
+                            print(f"Added video path from attachment: {attachment['path']}")
                         elif "url" in attachment:
                             videos.append(attachment["url"])
+                            print(f"Added video URL from attachment: {attachment['url']}")
+                        elif "filename" in attachment:
+                            videos.append(attachment["filename"])
+                            print(f"Added video filename from attachment: {attachment['filename']}")
                         elif "data" in attachment and isinstance(attachment["data"], dict):
+                            print(f"Video attachment data: {attachment['data']}")
                             if "uri" in attachment["data"]:
                                 videos.append(attachment["data"]["uri"])
+                                print(f"Added video URI from attachment data: {attachment['data']['uri']}")
+                            elif "url" in attachment["data"]:
+                                videos.append(attachment["data"]["url"])
+                                print(f"Added video URL from attachment data: {attachment['data']['url']}")
+
+        # Check for files field for videos
+        if "files" in message and isinstance(message["files"], list):
+            for file_item in message["files"]:
+                if isinstance(file_item, dict):
+                    file_type = file_item.get("file_type", "").lower()
+                    if "video" in file_type or file_type.endswith(('.mp4', '.mov', '.avi', '.wmv')):
+                        print(f"Found video file: {file_item}")
+                        if "uri" in file_item:
+                            videos.append(file_item["uri"])
+                            print(f"Added video URI from files: {file_item['uri']}")
+                        elif "path" in file_item:
+                            videos.append(file_item["path"])
+                            print(f"Added video path from files: {file_item['path']}")
+                        elif "url" in file_item:
+                            videos.append(file_item["url"])
+                            print(f"Added video URL from files: {file_item['url']}")
+                        elif "filename" in file_item:
+                            videos.append(file_item["filename"])
+                            print(f"Added video filename from files: {file_item['filename']}")
 
         # Check for audio with improved error handling
         audio = []
+
         # Check standard Instagram format
         if "audio_files" in message and isinstance(message["audio_files"], list):
+            print(f"Found audio_files array with {len(message['audio_files'])} items")
             for audio_file in message["audio_files"]:
-                if isinstance(audio_file, dict) and "uri" in audio_file:
-                    audio.append(audio_file["uri"])
+                if isinstance(audio_file, dict):
+                    print(f"Audio item: {audio_file}")
+                    if "uri" in audio_file:
+                        audio.append(audio_file["uri"])
+                        print(f"Added audio URI: {audio_file['uri']}")
+                    elif "path" in audio_file:
+                        audio.append(audio_file["path"])
+                        print(f"Added audio path: {audio_file['path']}")
+                    elif "filename" in audio_file:
+                        audio.append(audio_file["filename"])
+                        print(f"Added audio filename: {audio_file['filename']}")
 
-        # Check alternative formats
+        # Check for audio_data field
+        if "audio_data" in message and isinstance(message["audio_data"], list):
+            print(f"Found audio_data array with {len(message['audio_data'])} items")
+            for audio_item in message["audio_data"]:
+                if isinstance(audio_item, dict):
+                    print(f"Audio data item: {audio_item}")
+                    if "uri" in audio_item:
+                        audio.append(audio_item["uri"])
+                        print(f"Added audio URI from audio_data: {audio_item['uri']}")
+                    elif "path" in audio_item:
+                        audio.append(audio_item["path"])
+                        print(f"Added audio path from audio_data: {audio_item['path']}")
+
+        # Check alternative formats - attachments
         if "attachments" in message and isinstance(message["attachments"], list):
             for attachment in message["attachments"]:
                 if isinstance(attachment, dict):
                     # Check for audio in attachments
-                    if attachment.get("type") == "audio" or "audio" in str(attachment).lower():
+                    if attachment.get("type") == "audio" or "audio" in str(attachment).lower() or "voice" in str(attachment).lower():
+                        print(f"Found audio attachment: {attachment}")
                         if "uri" in attachment:
                             audio.append(attachment["uri"])
+                            print(f"Added audio URI from attachment: {attachment['uri']}")
                         elif "path" in attachment:
                             audio.append(attachment["path"])
+                            print(f"Added audio path from attachment: {attachment['path']}")
                         elif "url" in attachment:
                             audio.append(attachment["url"])
+                            print(f"Added audio URL from attachment: {attachment['url']}")
+                        elif "filename" in attachment:
+                            audio.append(attachment["filename"])
+                            print(f"Added audio filename from attachment: {attachment['filename']}")
                         elif "data" in attachment and isinstance(attachment["data"], dict):
+                            print(f"Audio attachment data: {attachment['data']}")
                             if "uri" in attachment["data"]:
                                 audio.append(attachment["data"]["uri"])
+                                print(f"Added audio URI from attachment data: {attachment['data']['uri']}")
+                            elif "url" in attachment["data"]:
+                                audio.append(attachment["data"]["url"])
+                                print(f"Added audio URL from attachment data: {attachment['data']['url']}")
+
+        # Check for files field for audio
+        if "files" in message and isinstance(message["files"], list):
+            for file_item in message["files"]:
+                if isinstance(file_item, dict):
+                    file_type = file_item.get("file_type", "").lower()
+                    if "audio" in file_type or "voice" in file_type or file_type.endswith(('.mp3', '.wav', '.ogg', '.m4a')):
+                        print(f"Found audio file: {file_item}")
+                        if "uri" in file_item:
+                            audio.append(file_item["uri"])
+                            print(f"Added audio URI from files: {file_item['uri']}")
+                        elif "path" in file_item:
+                            audio.append(file_item["path"])
+                            print(f"Added audio path from files: {file_item['path']}")
+                        elif "url" in file_item:
+                            audio.append(file_item["url"])
+                            print(f"Added audio URL from files: {file_item['url']}")
+                        elif "filename" in file_item:
+                            audio.append(file_item["filename"])
+                            print(f"Added audio filename from files: {file_item['filename']}")
+
+        # Check for voice_messages field
+        if "voice_messages" in message and isinstance(message["voice_messages"], list):
+            print(f"Found voice_messages array with {len(message['voice_messages'])} items")
+            for voice_msg in message["voice_messages"]:
+                if isinstance(voice_msg, dict):
+                    print(f"Voice message item: {voice_msg}")
+                    if "uri" in voice_msg:
+                        audio.append(voice_msg["uri"])
+                        print(f"Added audio URI from voice_messages: {voice_msg['uri']}")
+                    elif "path" in voice_msg:
+                        audio.append(voice_msg["path"])
+                        print(f"Added audio path from voice_messages: {voice_msg['path']}")
+                    elif "url" in voice_msg:
+                        audio.append(voice_msg["url"])
+                        print(f"Added audio URL from voice_messages: {voice_msg['url']}")
+                    elif "filename" in voice_msg:
+                        audio.append(voice_msg["filename"])
+                        print(f"Added audio filename from voice_messages: {voice_msg['filename']}")
 
         # Create processed message
         processed_message = {
