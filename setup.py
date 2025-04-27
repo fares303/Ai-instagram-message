@@ -6,12 +6,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="instagram-memory-book",
     version="1.0.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Founas Mohamed Fares",
+    author_email="fares.founas@example.com",
     description="Transform Instagram data exports into beautiful memory books",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/instagram-memory-book",
+    url="https://github.com/fares303/Ai-instagram-message",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

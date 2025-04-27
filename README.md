@@ -111,6 +111,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 👨‍💻 Author
+
+**Founas Mohamed Fares**
+
+- GitHub: [@fares303](https://github.com/fares303)
+
 ## 🙏 Acknowledgements
 
 - [emoji](https://github.com/carpedm20/emoji) - For emoji processing
