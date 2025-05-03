@@ -81,9 +81,37 @@ class InstagramDataProcessor:
                                         participant_names = [p.get("name", "") for p in data["participants"]]
                                         print(f"File participants: {participant_names}")
 
-                                        # Check if target user is in participants
-                                        if any(self.target_user.lower() in name.lower() for name in participant_names) or \
-                                           any(name.lower() in self.target_user.lower() for name in participant_names):
+                                        # Check if target user is in participants - with special handling for emojis
+                                        target_found = False
+
+                                        # Print all participants for debugging
+                                        print(f"Checking if target user '{self.target_user}' is in participants: {participant_names}")
+
+                                        # Try different matching approaches for emojis and special characters
+                                        for name in participant_names:
+                                            # Direct comparison (case insensitive)
+                                            if self.target_user.lower() == name.lower():
+                                                target_found = True
+                                                print(f"Exact match found for target user: {name}")
+                                                break
+
+                                            # Partial match (for emojis and special characters)
+                                            if self.target_user.lower() in name.lower() or name.lower() in self.target_user.lower():
+                                                target_found = True
+                                                print(f"Partial match found for target user: {name}")
+                                                break
+
+                                            # Character by character comparison (for emoji issues)
+                                            if len(self.target_user) > 0 and len(name) > 0:
+                                                # If first few characters match, consider it a match
+                                                first_chars_target = self.target_user[:min(3, len(self.target_user))].lower()
+                                                first_chars_name = name[:min(3, len(name))].lower()
+                                                if first_chars_target == first_chars_name:
+                                                    target_found = True
+                                                    print(f"First characters match for target user: {name}")
+                                                    break
+
+                                        if target_found:
                                             print(f"Found target user {self.target_user} in participants, adding file: {json_path}")
                                             json_files.append(json_path)
                                             break  # Found a valid encoding, no need to try others
@@ -556,8 +584,38 @@ class InstagramDataProcessor:
             processed_message["all_participants"] = list(self.participants)
         else:
             # For individual chats, check if the message mentions the target user
-            processed_message["mentions_target_name"] = self.target_user.lower() in content.lower() if content else False
-            processed_message["is_from_target"] = sender.lower() == self.target_user.lower()
+            # Special handling for emojis in usernames
+            mentions_target = False
+            if content:
+                # Try different matching approaches for target user mentions
+                if self.target_user.lower() in content.lower():
+                    mentions_target = True
+                # For emoji usernames, check if first few characters match
+                elif len(self.target_user) > 0:
+                    first_chars = self.target_user[:min(3, len(self.target_user))].lower()
+                    if first_chars in content.lower():
+                        mentions_target = True
+
+            processed_message["mentions_target_name"] = mentions_target
+
+            # Check if message is from target user - with special handling for emojis
+            is_from_target = False
+
+            # Direct comparison (case insensitive)
+            if sender.lower() == self.target_user.lower():
+                is_from_target = True
+            # Partial match (for emojis and special characters)
+            elif self.target_user.lower() in sender.lower() or sender.lower() in self.target_user.lower():
+                is_from_target = True
+            # Character by character comparison (for emoji issues)
+            elif len(self.target_user) > 0 and len(sender) > 0:
+                # If first few characters match, consider it a match
+                first_chars_target = self.target_user[:min(3, len(self.target_user))].lower()
+                first_chars_sender = sender[:min(3, len(sender))].lower()
+                if first_chars_target == first_chars_sender:
+                    is_from_target = True
+
+            processed_message["is_from_target"] = is_from_target
 
         # Print processed message for debugging
         print(f"Processed message: sender={sender}, date={processed_message['date']}, has_photos={len(photos)}, has_videos={len(videos)}, has_audio={len(audio)}")

@@ -446,11 +446,27 @@ class InstagramDataProcessorApp(ctk.CTk):
                 # If folder contains "instagram" and a username, that's likely the user
                 user_detected = False
                 for participant in participants:
-                    if participant.lower() in folder_name:
-                        self.my_name.set(participant)
-                        self.target_user.set([p for p in participants if p != participant][0])
-                        user_detected = True
-                        break
+                    # Handle emojis and special characters in usernames
+                    try:
+                        # Try direct match first
+                        if participant.lower() in folder_name:
+                            self.my_name.set(participant)
+                            self.target_user.set([p for p in participants if p != participant][0])
+                            user_detected = True
+                            print(f"Auto-detected user: {participant} (direct match in folder name)")
+                            break
+
+                        # If participant name has more than 3 characters, try matching first few characters
+                        if len(participant) >= 3:
+                            first_chars = participant[:3].lower()
+                            if first_chars in folder_name:
+                                self.my_name.set(participant)
+                                self.target_user.set([p for p in participants if p != participant][0])
+                                user_detected = True
+                                print(f"Auto-detected user: {participant} (partial match in folder name)")
+                                break
+                    except Exception as e:
+                        print(f"Error comparing participant name: {e}")
 
                 # If we couldn't determine, just set them in order
                 if not user_detected:
