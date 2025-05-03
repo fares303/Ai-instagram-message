@@ -51,8 +51,8 @@ def setup_directories(base_path):
 
 def fix_broken_text(text):
     """
-    Fix broken text encoding, especially for Arabic text.
-    Uses the latin1 -> utf-8 conversion method as specified.
+    Fix broken text encoding, especially for Arabic text and emojis.
+    Uses multiple encoding/decoding methods to handle different cases.
 
     Args:
         text (str): Text to fix
@@ -67,18 +67,55 @@ def fix_broken_text(text):
     # common broken encoding characters like ð, Ã, Ø, etc.
     broken_chars = ['ð', 'Ã', 'Ø', 'Ù', 'Ú', 'Û', 'Ü', 'Ý', 'Þ', 'ß', 'à', 'á', 'â', 'ã', 'ä', 'å',
                     'æ', 'ç', 'è', 'é', 'ê', 'ë', 'ì', 'í', 'î', 'ï', 'ñ', 'ò', 'ó', 'ô', 'õ', 'ö',
-                    '˜', '™', 'š', '›', 'œ', '§', '©', '¯', '°', '±', '²', '³', '´', 'µ', '¶', '·', '¸']
+                    '˜', '™', 'š', '›', 'œ', '§', '©', '¯', '°', '±', '²', '³', '´', 'µ', '¶', '·', '¸',
+                    '\\x9f', '\\x8f', '\\x9a', '\\x91']  # Add common hex escape sequences
+
+    # Special handling for emoji patterns
+    emoji_patterns = [r'ð\x9f[\x80-\xff][\x80-\xff]', r'\\x9f\\x[\x80-\xff]\\x[\x80-\xff]']
+
+    # Check for emoji patterns using regex
+    has_emoji_pattern = False
+    for pattern in emoji_patterns:
+        if re.search(pattern, text):
+            has_emoji_pattern = True
+            break
 
     # Check if text contains any of the broken characters
-    if any(c in text for c in broken_chars):
+    has_broken_chars = any(c in text for c in broken_chars)
+
+    # Try different fixing methods based on what we detected
+    if has_emoji_pattern or has_broken_chars:
         try:
-            # Apply the latin1 -> utf-8 conversion as specified
+            # First try the latin1 -> utf-8 conversion as specified
             fixed_text = text.encode('latin1').decode('utf-8')
             return fixed_text
         except (UnicodeEncodeError, UnicodeDecodeError):
-            # If conversion fails, return original
-            return text
+            pass
 
+        try:
+            # Try utf-8 -> utf-8 conversion (sometimes helps with double-encoded text)
+            fixed_text = text.encode('utf-8').decode('utf-8')
+            return fixed_text
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+
+        try:
+            # Try cp1252 -> utf-8 conversion (common for Windows systems)
+            fixed_text = text.encode('cp1252').decode('utf-8')
+            return fixed_text
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+
+        # If all conversions fail, try to replace problematic sequences
+        if '\\x' in text or r'\u' in text:
+            try:
+                # Try to interpret escape sequences
+                fixed_text = text.encode('utf-8').decode('unicode_escape')
+                return fixed_text
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                pass
+
+    # If all attempts fail, return the original text
     return text
 
 def unescape_text(text):

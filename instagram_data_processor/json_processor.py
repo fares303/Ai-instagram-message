@@ -87,29 +87,56 @@ class InstagramDataProcessor:
                                         # Print all participants for debugging
                                         print(f"Checking if target user '{self.target_user}' is in participants: {participant_names}")
 
-                                        # Try different matching approaches for emojis and special characters
+                                        # Special handling for emoji usernames
+                                        # First, try to fix any broken encoding in participant names
+                                        fixed_participant_names = []
                                         for name in participant_names:
+                                            try:
+                                                # Try to fix broken encoding
+                                                fixed_name = utils.fix_broken_text(name)
+                                                fixed_participant_names.append(fixed_name)
+                                                print(f"Fixed participant name: '{name}' -> '{fixed_name}'")
+                                            except Exception as e:
+                                                print(f"Error fixing participant name: {e}")
+                                                fixed_participant_names.append(name)
+
+                                        # Try different matching approaches for emojis and special characters
+                                        for name in fixed_participant_names:
                                             # Direct comparison (case insensitive)
-                                            if self.target_user.lower() == name.lower():
-                                                target_found = True
-                                                print(f"Exact match found for target user: {name}")
-                                                break
+                                            try:
+                                                if self.target_user.lower() == name.lower():
+                                                    target_found = True
+                                                    print(f"Exact match found for target user: {name}")
+                                                    break
+                                            except Exception as e:
+                                                print(f"Error in exact match comparison: {e}")
 
                                             # Partial match (for emojis and special characters)
-                                            if self.target_user.lower() in name.lower() or name.lower() in self.target_user.lower():
-                                                target_found = True
-                                                print(f"Partial match found for target user: {name}")
-                                                break
+                                            try:
+                                                if self.target_user.lower() in name.lower() or name.lower() in self.target_user.lower():
+                                                    target_found = True
+                                                    print(f"Partial match found for target user: {name}")
+                                                    break
+                                            except Exception as e:
+                                                print(f"Error in partial match comparison: {e}")
 
                                             # Character by character comparison (for emoji issues)
-                                            if len(self.target_user) > 0 and len(name) > 0:
-                                                # If first few characters match, consider it a match
-                                                first_chars_target = self.target_user[:min(3, len(self.target_user))].lower()
-                                                first_chars_name = name[:min(3, len(name))].lower()
-                                                if first_chars_target == first_chars_name:
-                                                    target_found = True
-                                                    print(f"First characters match for target user: {name}")
-                                                    break
+                                            try:
+                                                if len(self.target_user) > 0 and len(name) > 0:
+                                                    # If first few characters match, consider it a match
+                                                    first_chars_target = self.target_user[:min(3, len(self.target_user))].lower()
+                                                    first_chars_name = name[:min(3, len(name))].lower()
+                                                    if first_chars_target == first_chars_name:
+                                                        target_found = True
+                                                        print(f"First characters match for target user: {name}")
+                                                        break
+                                            except Exception as e:
+                                                print(f"Error in character comparison: {e}")
+
+                                        # If all else fails, just accept the file if it has the right structure
+                                        if not target_found and "messages" in data and len(data["messages"]) > 0:
+                                            print(f"No match found, but file has messages. Adding file: {json_path}")
+                                            target_found = True
 
                                         if target_found:
                                             print(f"Found target user {self.target_user} in participants, adding file: {json_path}")

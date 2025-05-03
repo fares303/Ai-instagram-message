@@ -651,11 +651,11 @@ class InstagramDataProcessorApp(ctk.CTk):
         # Clear previous results
         self.results_text.delete("0.0", "end")
 
-        # Add results text
-        self.results_text.insert("end", "📊 CONVERSATION ANALYSIS RESULTS 📊\n\n", "heading")
+        # Add results text - using a different approach for headings since tag_configure is not supported
+        self.results_text.insert("end", "📊 CONVERSATION ANALYSIS RESULTS 📊\n\n")
 
         # Basic stats
-        self.results_text.insert("end", "📝 Basic Statistics:\n", "subheading")
+        self.results_text.insert("end", "📝 Basic Statistics:\n")
         self.results_text.insert("end", f"• Total Messages: {results['messages']}\n")
 
         # Check if it's a group chat
@@ -679,20 +679,20 @@ class InstagramDataProcessorApp(ctk.CTk):
         self.results_text.insert("end", f"• Most Active Day: {stats['most_active_day']} ({stats['most_active_day_count']} messages)\n\n")
 
         # Media stats
-        self.results_text.insert("end", "📷 Media Statistics:\n", "subheading")
+        self.results_text.insert("end", "📷 Media Statistics:\n")
         self.results_text.insert("end", f"• Photos: {media_stats['photos']}\n")
         self.results_text.insert("end", f"• Videos: {media_stats['videos']}\n")
         self.results_text.insert("end", f"• Audio Files: {media_stats['audio']}\n\n")
 
         # Custom word counts
         if results['custom_word_counts']:
-            self.results_text.insert("end", "🔍 Custom Word/Emoji Counts:\n", "subheading")
+            self.results_text.insert("end", "🔍 Custom Word/Emoji Counts:\n")
             for word, count in results['custom_word_counts'].items():
                 self.results_text.insert("end", f"• '{word}': {count} occurrences\n")
             self.results_text.insert("end", "\n")
 
         # Output files
-        self.results_text.insert("end", "📁 Output Files:\n", "subheading")
+        self.results_text.insert("end", "📁 Output Files:\n")
         if results['output_files']['txt']:
             self.results_text.insert("end", f"• TXT: {os.path.basename(results['output_files']['txt'])}\n")
         if results['output_files']['html']:
@@ -703,9 +703,8 @@ class InstagramDataProcessorApp(ctk.CTk):
             self.results_text.insert("end", f"• Excel: {os.path.basename(results['output_files']['excel'])}\n")
         self.results_text.insert("end", f"\nAll files saved to: {results['output_path']}\n")
 
-        # Configure text tags
-        self.results_text.tag_configure("heading", font=ctk.CTkFont(size=16, weight="bold"))
-        self.results_text.tag_configure("subheading", font=ctk.CTkFont(size=14, weight="bold"))
+        # Configure text tags - CTkTextbox doesn't support tag_configure directly
+        # Instead, we'll use different formatting for headings
 
     def _open_results_folder(self):
         """Open the results folder in file explorer."""
