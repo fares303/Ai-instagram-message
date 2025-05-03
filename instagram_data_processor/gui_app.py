@@ -9,7 +9,7 @@ import os
 import json
 import threading
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import customtkinter as ctk
 
 # Import the necessary modules from our package
@@ -85,13 +85,27 @@ class InstagramDataProcessorApp(ctk.CTk):
         header_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         header_frame.pack(fill=tk.X, pady=(0, 20))
 
+        # Header with title and new analysis button
+        title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_frame.pack(fill=tk.X, pady=10)
+
+        # New Analysis button
+        new_analysis_btn = ctk.CTkButton(
+            title_frame,
+            text="New Analysis",
+            command=self._reset_ui,
+            width=120,
+            height=30
+        )
+        new_analysis_btn.pack(side=tk.RIGHT, padx=10)
+
         # Title
         title_label = ctk.CTkLabel(
-            header_frame,
+            title_frame,
             text="Instagram Memory Book Generator",
             font=ctk.CTkFont(size=24, weight="bold")
         )
-        title_label.pack(pady=10)
+        title_label.pack(side=tk.LEFT, padx=10)
 
         # Subtitle
         subtitle_label = ctk.CTkLabel(
@@ -698,9 +712,41 @@ class InstagramDataProcessorApp(ctk.CTk):
         self.is_analyzing = False
         self.analysis_complete = False
         self.analysis_results = None
+        self.json_files = []
+        self.valid_json_files = []
+
+        # Option to clear folder path and user inputs
+        should_clear = True
+        if self.folder_path.get():
+            should_clear = messagebox.askyesno(
+                "Reset Analysis",
+                "Do you want to clear the current folder path and user inputs?"
+            )
+
+        if should_clear:
+            # Clear folder path and user inputs
+            self.folder_path.set("")
+            self.target_user.set("")
+            self.my_name.set("")
+            self.custom_words.set("")
+            self.is_group_chat.set(False)
+
+            # Keep output path as it is (user might want to use the same output folder)
+
+        # Reset folder path label
+        self.files_label.configure(text="No files detected yet")
+
+        # Clear progress bar
+        self.progress_bar.set(0)
+
+        # Reset progress frame (ensure it's hidden)
+        self.progress_frame.pack_forget()
 
         # Enable analyze button
         self.analyze_button.configure(state="normal")
+
+        # Show the main UI elements again
+        self.main_frame.update()
 
     def _show_error(self, message):
         """Show an error message dialog."""
