@@ -254,6 +254,22 @@ class InstagramDataProcessor:
 
         return all_messages
 
+    def _extract_emojis(self, text):
+        """
+        Extract emojis from text.
+
+        Args:
+            text (str): Text to extract emojis from
+
+        Returns:
+            list: List of emojis found in the text
+        """
+        if not text:
+            return []
+
+        # Use the utils function to extract emojis
+        return utils.extract_emojis(text)
+
     def _process_message(self, message):
         """
         Process a single message.
@@ -709,6 +725,29 @@ class InstagramDataProcessor:
 
         most_active_day = max(days_count.items(), key=lambda x: x[1]) if days_count else ("N/A", 0)
 
+        # Count messages by date for timeline chart
+        messages_by_date = {}
+        for msg in self.messages:
+            date = msg["date"]
+            messages_by_date[date] = messages_by_date.get(date, 0) + 1
+
+        # Count messages by hour for activity chart
+        messages_by_hour = {}
+        for msg in self.messages:
+            try:
+                # Extract hour from timestamp
+                if isinstance(msg["timestamp"], datetime):
+                    hour = msg["timestamp"].hour
+                    messages_by_hour[hour] = messages_by_hour.get(hour, 0) + 1
+            except Exception as e:
+                print(f"Error extracting hour from timestamp: {e}")
+
+        # Count emoji usage for emoji chart
+        emoji_counts = {}
+        for msg in self.messages:
+            for emoji in msg["emojis"]:
+                emoji_counts[emoji] = emoji_counts.get(emoji, 0) + 1
+
         # Create stats dictionary
         stats = {
             "total_messages": total_messages,
@@ -731,7 +770,11 @@ class InstagramDataProcessor:
             "most_active_day_count": most_active_day[1],
             "is_group_chat": self.is_group_chat,
             "participants_count": len(self.participants),
-            "participants": list(self.participants)
+            "participants": list(self.participants),
+            # Add chart data
+            "messages_by_date": messages_by_date,
+            "messages_by_hour": messages_by_hour,
+            "emoji_counts": emoji_counts
         }
 
         # Add group chat specific statistics

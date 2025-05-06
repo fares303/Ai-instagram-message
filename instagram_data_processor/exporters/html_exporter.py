@@ -175,6 +175,8 @@ class HTMLExporter:
     <title>{'Group Chat: ' if is_group_chat else 'Conversation with '}{html.escape(target_user)}</title>
     <!-- Google Fonts for better Arabic support -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap">
+    <!-- Chart.js for statistics visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>>
     <style>
         /* General styles */
         @font-face {{
@@ -261,6 +263,45 @@ class HTMLExporter:
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 15px;
+            margin-bottom: 30px;
+        }}
+
+        /* Charts section */
+        .charts-container {{
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-top: 20px;
+        }}
+
+        .charts-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }}
+
+        .chart-card {{
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 300px;
+            position: relative;
+        }}
+
+        .chart-card:hover {{
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }}
+
+        .chart-title {{
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #333;
         }}
 
         .stat-card {{
@@ -567,11 +608,64 @@ class HTMLExporter:
             </div>
         </div>
 '''
+
+        # Add charts section
+        html_content += '''
+        <div class="charts-container">
+            <h2>Conversation Analytics</h2>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Message Distribution</div>
+                    <canvas id="messageDistributionChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Messages Over Time</div>
+                    <canvas id="messagesOverTimeChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Emoji Usage</div>
+                    <canvas id="emojiUsageChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Activity by Hour</div>
+                    <canvas id="activityByHourChart"></canvas>
+                </div>
+            </div>
+        </div>
+'''
+
+        # Add chart data as JSON for JavaScript to use
+        message_distribution = {}
+        for sender, count in stats['messages_by_sender'].items():
+            message_distribution[sender] = count
+
+        # Add messages by date data
+        messages_by_date = stats.get('messages_by_date', {})
+
+        # Add emoji data
+        emoji_data = {}
+        for emoji_char in stats.get('unique_emojis', [])[:10]:  # Top 10 emojis
+            emoji_data[emoji_char] = stats.get('emoji_counts', {}).get(emoji_char, 0)
+
+        # Add activity by hour data
+        activity_by_hour = stats.get('messages_by_hour', {})
+
+        # Convert data to JSON for JavaScript
+        html_content += f'''
+        <script>
+            // Chart data
+            const messageDistributionData = {json.dumps(message_distribution)};
+            const messagesByDateData = {json.dumps(messages_by_date)};
+            const emojiData = {json.dumps(emoji_data)};
+            const activityByHourData = {json.dumps(activity_by_hour)};
+        </script>
+'''
+
         return html_content
 
     def _generate_html_footer(self):
         """
-        Generate HTML footer with JavaScript for animations.
+        Generate HTML footer with JavaScript for animations and charts.
 
         Returns:
             str: HTML footer
@@ -626,7 +720,266 @@ class HTMLExporter:
                 card.style.animationDuration = '0.5s';
                 card.style.animationFillMode = 'both';
             });
+
+            // Create charts
+            createCharts();
         });
+
+        // Function to create all charts
+        function createCharts() {
+            // Set default Chart.js colors
+            const chartColors = [
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(54, 162, 235, 0.7)',
+                'rgba(255, 206, 86, 0.7)',
+                'rgba(75, 192, 192, 0.7)',
+                'rgba(153, 102, 255, 0.7)',
+                'rgba(255, 159, 64, 0.7)',
+                'rgba(199, 199, 199, 0.7)',
+                'rgba(83, 102, 255, 0.7)',
+                'rgba(40, 159, 64, 0.7)',
+                'rgba(210, 199, 199, 0.7)'
+            ];
+
+            // 1. Message Distribution Chart (Pie Chart)
+            createMessageDistributionChart();
+
+            // 2. Messages Over Time Chart (Line Chart)
+            createMessagesOverTimeChart();
+
+            // 3. Emoji Usage Chart (Bar Chart)
+            createEmojiUsageChart();
+
+            // 4. Activity by Hour Chart (Bar Chart)
+            createActivityByHourChart();
+        }
+
+        // Create Message Distribution Chart
+        function createMessageDistributionChart() {
+            const ctx = document.getElementById('messageDistributionChart').getContext('2d');
+
+            // Prepare data
+            const labels = Object.keys(messageDistributionData);
+            const data = Object.values(messageDistributionData);
+
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Messages Over Time Chart
+        function createMessagesOverTimeChart() {
+            const ctx = document.getElementById('messagesOverTimeChart').getContext('2d');
+
+            // Prepare data
+            const dates = Object.keys(messagesByDateData).sort();
+            const counts = dates.map(date => messagesByDateData[date]);
+
+            // Group by month if there are too many dates
+            let groupedDates = dates;
+            let groupedCounts = counts;
+
+            if (dates.length > 30) {
+                const monthlyData = {};
+
+                dates.forEach((date, index) => {
+                    // Extract year and month (YYYY-MM)
+                    const yearMonth = date.substring(0, 7);
+                    if (!monthlyData[yearMonth]) {
+                        monthlyData[yearMonth] = 0;
+                    }
+                    monthlyData[yearMonth] += counts[index];
+                });
+
+                groupedDates = Object.keys(monthlyData).sort();
+                groupedCounts = groupedDates.map(month => monthlyData[month]);
+            }
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: groupedDates,
+                    datasets: [{
+                        label: 'Messages',
+                        data: groupedCounts,
+                        fill: true,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Messages'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: dates.length > 30 ? 'Month' : 'Date'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Emoji Usage Chart
+        function createEmojiUsageChart() {
+            const ctx = document.getElementById('emojiUsageChart').getContext('2d');
+
+            // Prepare data
+            const emojis = Object.keys(emojiData);
+            const counts = emojis.map(emoji => emojiData[emoji]);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: emojis,
+                    datasets: [{
+                        label: 'Usage Count',
+                        data: counts,
+                        backgroundColor: 'rgba(255, 206, 86, 0.7)',
+                        borderColor: 'rgba(255, 206, 86, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Activity by Hour Chart
+        function createActivityByHourChart() {
+            const ctx = document.getElementById('activityByHourChart').getContext('2d');
+
+            // Prepare data for 24 hours (0-23)
+            const hours = Array.from({length: 24}, (_, i) => i);
+            const counts = hours.map(hour => activityByHourData[hour] || 0);
+
+            // Format hours for display (e.g., "01:00", "13:00")
+            const hourLabels = hours.map(hour => {
+                const formattedHour = hour.toString().padStart(2, '0');
+                return `${formattedHour}:00`;
+            });
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hourLabels,
+                    datasets: [{
+                        label: 'Messages',
+                        data: counts,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Messages'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hour of Day'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
